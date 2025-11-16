@@ -83,3 +83,61 @@ docker-compose down -v
     * если кандидатов нет, возвращается ошибка `NO_CANDIDATE` (409).
 
 * Merge - идемпотентный: повторный вызов возвращает актуальное состояние.
+
+## Тестирование
+
+### Интеграционные тесты
+
+Интеграционные тесты находятся в `tests/integration_test.go` и проверяют работу всего приложения через HTTP API.
+
+**Требования:**
+- Запущенная PostgreSQL база данных (можно через `docker-compose up db`)
+- Переменные окружения для подключения к БД (или используются значения по умолчанию)
+
+**Запуск тестов:**
+
+```bash
+# Запустить все интеграционные тесты
+go test ./tests
+
+# С подробным выводом
+go test  -v ./tests
+
+# Запустить конкретный тест
+go test -v ./tests -run TestIntegration_CreateTeamAndPRFlow
+
+# Запустить все тесты с покрытием
+go test -v -cover ./tests
+```
+
+**Настройка подключения к БД:**
+
+По умолчанию тесты используют те же параметры, что и docker-compose:
+- `POSTGRES_HOST=localhost` (или `TEST_DATABASE_URL` для полного DSN)
+- `POSTGRES_USER=pruser`
+- `POSTGRES_PASSWORD=prpass`
+- `POSTGRES_PORT=5432`
+- `POSTGRES_DB=prdb`
+
+**Что проверяют тесты:**
+- `TestIntegration_CreateTeamAndPRFlow` - создание команды и PR с автоматическим назначением ревьюверов
+- `TestIntegration_MergeIsIdempotent` - идемпотентность операции merge
+- `TestIntegration_ReassignReviewer` - переназначение ревьювера
+- `TestIntegration_UserGetReview` - получение списка PR для ревьювера
+
+**Примечание:** Тесты автоматически применяют миграции и очищают БД между запусками.
+
+### Unit тесты
+
+Unit тесты для доменных сервисов находятся рядом с кодом в `internal/domain/*/service_test.go`.
+
+```bash
+# Запустить все unit тесты
+go test ./internal/domain/...
+
+# Запустить тесты конкретного сервиса
+go test ./internal/domain/team
+go test ./internal/domain/user
+go test ./internal/domain/pr
+go test ./internal/domain/stats
+```
